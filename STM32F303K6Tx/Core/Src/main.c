@@ -58,7 +58,7 @@ float VSense[2]; 	// first one is 5V, second one is 24V
 float ISense[2]; 	// first one is 5V, second one is 24V
 uint8_t V_byte[4];
 uint8_t I_byte[4];
-float offset[4];
+float offset[4] = {0.0, 0.0, 0.0, 0.0};
 uint8_t IDs[2] = {0x30, 0x32};
 uint8_t Data[8];
 uint32_t TxMailBox = 0;
