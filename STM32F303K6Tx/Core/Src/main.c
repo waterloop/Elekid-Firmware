@@ -76,6 +76,7 @@ static void MX_ADC2_Init(void);
 static void MX_CAN_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
+void float2Bytes(float val, uint8_t *bytes_array);
 
 /* USER CODE END PFP */
 
@@ -120,8 +121,8 @@ int main(void)
   hcan.Instance->MCR = 0x60; // important for debugging canbus, allows for normal operation during debugging
   HAL_CAN_Start(&hcan);
   HAL_ADC_Start_DMA(&hadc2, (uint32_t*)ADC2ConvertedValues, 64);
-  HAL_TIM_Base_Start_IT(&htim2);
-  __HAL_TIM_SET_COUNTER(&htim2, 0);
+  //HAL_TIM_Base_Start_IT(&htim2);
+  //__HAL_TIM_SET_COUNTER(&htim2, 0);
  // HAL_ADC_Start(&hadc2);
 
   /* USER CODE END 2 */
@@ -130,6 +131,22 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    	for (uint8_t i=0; i < 2; ++i) { 										//looping through CAN messages and sending data acquired
+
+				TxHeader.StdId = IDs[i];
+				float2Bytes(VSense[i], &V_byte[0]); 						//converting the floats to packets of bytes
+				float2Bytes(ISense[i], &I_byte[0]);
+
+				for (uint8_t j=0 ; j < 4; j++) {
+
+					Data[j] = I_byte[j]; 									//writing down for the data buffer
+					Data[j+4] = V_byte[j];
+				}
+
+				HAL_CAN_AddTxMessage(&hcan, &TxHeader, Data, &TxMailBox ); 	// load message to mailbox
+				while (HAL_CAN_IsTxMessagePending( &hcan, TxMailBox));		//waiting till message gets through
+			}
+      HAL_Delay(200);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -309,7 +326,7 @@ static void MX_CAN_Init(void)
   TxHeader.StdId = 0x00;
   //TxHeader.ExtId = 0x01;
   TxHeader.RTR = CAN_RTR_DATA; 	 			// want data frame
-  TxHeader.IDE = CAN_ID_EXT;	 			// want extended frame
+  TxHeader.IDE = CAN_ID_STD;	 			// want standard frame
   TxHeader.DLC = 8;			 	 			// amounts of bytes u sending
   TxHeader.TransmitGlobalTime = DISABLE;
   /* USER CODE END CAN_Init 2 */
@@ -475,7 +492,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
 
 	}
 }
-
+/*
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	for (uint8_t i=0; i < 2; ++i) { 										//looping through CAN messages and sending data acquired
 
@@ -493,7 +510,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 				while (HAL_CAN_IsTxMessagePending( &hcan, TxMailBox));		//waiting till message gets through
 			}
 }
-
+*/
 /* USER CODE END 4 */
 
 /**
