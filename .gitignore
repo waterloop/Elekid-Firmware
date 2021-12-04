@@ -1,6 +1,7 @@
 build
 bin
 Debug
+.metadata/
 
 # macos
 .DS_Store

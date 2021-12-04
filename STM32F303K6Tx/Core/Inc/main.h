@@ -32,7 +32,10 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "string.h"
+#include <stdbool.h>
+#include "can.h"
+#include "elekid_entry.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -42,7 +45,10 @@ extern "C" {
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
-
+extern ADC_HandleTypeDef hadc2;
+extern DMA_HandleTypeDef hdma_adc2;
+extern CAN_HandleTypeDef hcan;
+extern TIM_HandleTypeDef htim2;
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/

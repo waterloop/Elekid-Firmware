@@ -19,10 +19,10 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "string.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -52,13 +52,20 @@ CAN_HandleTypeDef hcan;
 
 TIM_HandleTypeDef htim2;
 
+/* Definitions for defaultTask */
+osThreadId_t defaultTaskHandle;
+const osThreadAttr_t defaultTask_attributes = {
+  .name = "defaultTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 /* USER CODE BEGIN PV */
 uint16_t ADC2ConvertedValues[64];
 float VSense[2]; 	// first one is 5V, second one is 24V
 float ISense[2]; 	// first one is 5V, second one is 24V
 uint8_t V_byte[4];
 uint8_t I_byte[4];
-float offset[4] = {0.0, 0.0, 0.0, 0.0};
+float offset1[4] = {0.0, 0.0, 0.0, 0.0};
 uint8_t IDs[2] = {0x30, 0x32};
 uint8_t Data[8];
 uint32_t TxMailBox = 0;
@@ -75,6 +82,8 @@ static void MX_DMA_Init(void);
 static void MX_ADC2_Init(void);
 static void MX_CAN_Init(void);
 static void MX_TIM2_Init(void);
+void StartDefaultTask(void *argument);
+
 /* USER CODE BEGIN PFP */
 void float2Bytes(float val, uint8_t *bytes_array);
 
@@ -127,6 +136,41 @@ int main(void)
 
   /* USER CODE END 2 */
 
+  /* Init scheduler */
+  osKernelInitialize();
+
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* add mutexes, ... */
+  /* USER CODE END RTOS_MUTEX */
+
+  /* USER CODE BEGIN RTOS_SEMAPHORES */
+  /* add semaphores, ... */
+  /* USER CODE END RTOS_SEMAPHORES */
+
+  /* USER CODE BEGIN RTOS_TIMERS */
+  /* start timers, add new ones, ... */
+  /* USER CODE END RTOS_TIMERS */
+
+  /* USER CODE BEGIN RTOS_QUEUES */
+  /* add queues, ... */
+  /* USER CODE END RTOS_QUEUES */
+
+  /* Create the thread(s) */
+  /* creation of defaultTask */
+  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+
+  /* USER CODE BEGIN RTOS_THREADS */
+  /* add threads, ... */
+  /* USER CODE END RTOS_THREADS */
+
+  /* USER CODE BEGIN RTOS_EVENTS */
+  /* add events, ... */
+  /* USER CODE END RTOS_EVENTS */
+
+  /* Start scheduler */
+  osKernelStart();
+
+  /* We should never get here as control is now taken by the scheduler */
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -389,7 +433,7 @@ static void MX_DMA_Init(void)
 
   /* DMA interrupt init */
   /* DMA1_Channel2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 0, 0);
+  HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
 
 }
@@ -462,28 +506,28 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
 				if ( (mean > 3500) || ( mean < 2850) ) {
 					HAL_GPIO_WritePin(OV_UV_GPIO_Port, OV_UV_Pin, GPIO_PIN_SET);
 				}
-				VSense[0] = (((float)mean)*VGain_2) + offset[i];
+				VSense[0] = (((float)mean)*VGain_2) + offset1[i];
 			break;
 
 			case 1:
 				if ( (mean > 3750) || ( mean < 2850) ) {
 					HAL_GPIO_WritePin(OV_UV_GPIO_Port, OV_UV_Pin, GPIO_PIN_SET);
 				}
-				VSense[1] = (((float)mean)*VGain_1) + offset[i];
+				VSense[1] = (((float)mean)*VGain_1) + offset1[i];
 				break;
 
 			case 2:
 				if (mean > 700) {
 					HAL_GPIO_WritePin(SHORT_GPIO_Port, SHORT_Pin, GPIO_PIN_SET);
 				}
-				ISense[0] = (((float)mean)*IGain) + offset[i];
+				ISense[0] = (((float)mean)*IGain) + offset1[i];
 				break;
 
 			case 3:
 				if (mean > 3100) {
 					HAL_GPIO_WritePin(SHORT_GPIO_Port, SHORT_Pin, GPIO_PIN_SET);
 				}
-				ISense[1] = (((float)mean)*IGain) + offset[i];
+				ISense[1] = (((float)mean)*IGain) + offset1[i];
 				break;
 
 			default:
@@ -512,6 +556,24 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 }
 */
 /* USER CODE END 4 */
+
+/* USER CODE BEGIN Header_StartDefaultTask */
+/**
+  * @brief  Function implementing the defaultTask thread.
+  * @param  argument: Not used
+  * @retval None
+  */
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void *argument)
+{
+  /* USER CODE BEGIN 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END 5 */
+}
 
 /**
   * @brief  This function is executed in case of error occurrence.
