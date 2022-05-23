@@ -23,7 +23,7 @@ DEVICE_DIRNAME = STM32F303K6Tx
 # debug build?
 DEBUG = 1
 # optimization
-OPT = -O0
+OPT = -Og
 
 
 #######################################
@@ -77,7 +77,6 @@ CPU = -mcpu=cortex-m4
 # fpu
 FPU = -mfpu=fpv4-sp-d16
 
-
 # float-abi
 FLOAT-ABI = -mfloat-abi=hard
 
@@ -96,6 +95,7 @@ AS_DEFS =
 C_DEFS = \
 -D USE_HAL_DRIVER \
 -D STM32F303x8 \
+-D LV_POWER \
 -D DEBUG
 
 
@@ -108,7 +108,8 @@ C_INCLUDES =  \
 -I ./$(DEVICE_DIRNAME)/Drivers/STM32F3xx_HAL_Driver/Inc \
 -I ./$(DEVICE_DIRNAME)/Drivers/STM32F3xx_HAL_Driver/Inc/Legacy \
 -I ./$(DEVICE_DIRNAME)/Drivers/CMSIS/Device/ST/STM32F3xx/Include \
--I ./$(DEVICE_DIRNAME)/Drivers/CMSIS/Include
+-I ./$(DEVICE_DIRNAME)/Drivers/CMSIS/Include \
+-I ./WLoopCAN/include
 
 C_INCLUDES += $(USER_INCLUDES)
 
@@ -159,8 +160,8 @@ $(BUILD_DIR)/%.o: %.s makefile | $(BUILD_DIR)
 	$(AS) -c $(CFLAGS) $< -o $@
 	@echo ""
 
-$(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) makefile
-	$(CC) $(OBJECTS) $(LDFLAGS) -o $@
+$(BUILD_DIR)/$(TARGET).elf: $(OBJECTS) makefile libs
+	$(CC) $(OBJECTS) ./WLoopCAN/bin/wloop_can.a $(LDFLAGS) -o $@
 	@echo ""
 	$(SZ) $@
 	@echo ""
@@ -172,19 +173,24 @@ $(BUILD_DIR)/%.bin: $(BUILD_DIR)/%.elf | $(BUILD_DIR)
 	$(BIN) $< $@	
 	
 $(BUILD_DIR):
-	mkdir $@		
+	mkdir $@
+
+libs:
+	cd ./WLoopCAN/ && make lv_power		
 
 #######################################
 # clean up
 #######################################
 clean:
 	rm -rf $(BUILD_DIR)
+	rm -rf ./WLoopCAN/bin
 
 analyze:
 	$(PREFIX)objdump -t $(BUILD_DIR)/$(TARGET).elf
 
 flash:
 	st-flash write $(BUILD_DIR)/main.bin 0x08000000 
+	st-flash reset
 
 #######################################
 # dependencies
