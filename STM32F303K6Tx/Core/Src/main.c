@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "string.h"
+#include "can.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,10 +62,6 @@ uint8_t V_byte[4];
 uint8_t I_byte[4];
 float offset[4] = {0.0, 0.0, 0.0, 0.0};
 uint8_t IDs[2] = {0x30, 0x32};
-uint8_t Data[8];
-uint32_t TxMailBox = 0;
-CAN_TxHeaderTypeDef TxHeader;
-CAN_FilterTypeDef FilterConfig;
 uint32_t sum = 0;
 uint16_t mean = 0;
 /* USER CODE END PV */
@@ -121,8 +118,15 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM16_Init();
   /* USER CODE BEGIN 2 */
+  // Initializes CAN
+  if (CANBus_init(&hcan, &htim16) != HAL_OK) {
+    Error_Handler();
+  }
+  if(CANBus_subscribe(STATE_CHANGE_REQ) != HAL_OK) {
+      Error_Handler();
+  }
+
   hcan.Instance->MCR = 0x60; // important for debugging canbus, allows for normal operation during debugging
-  HAL_CAN_Start(&hcan);
   HAL_ADC_Start_DMA(&hadc2, (uint32_t*)ADC2ConvertedValues, 64);
   //HAL_TIM_Base_Start_IT(&htim2);
   //__HAL_TIM_SET_COUNTER(&htim2, 0);
@@ -132,23 +136,22 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
   while (1)
   {
-    	for (uint8_t i=0; i < 2; ++i) { 										//looping through CAN messages and sending data acquired
 
-				TxHeader.StdId = IDs[i];
-				float2Bytes(VSense[i], &V_byte[0]); 						//converting the floats to packets of bytes
-				float2Bytes(ISense[i], &I_byte[0]);
+      // TX Code
+      CANFrame tx_frame1;
+      CANFrame tx_frame2;
 
-				for (uint8_t j=0 ; j < 4; j++) {
+      tx_frame1 = CANFrame_init(CURRENT_5V_DATA);
+      CANFrame_set_field(&tx_frame1, CURRENT_5V, FLOAT_TO_UINT(ISense[0]));
+      CANBus_put_frame(&tx_frame1);
+      
+      tx_frame2 = CANFrame_init(CURRENT_24V_DATA);
+      CANFrame_set_field(&tx_frame2, CURRENT_24V, FLOAT_TO_UINT(ISense[1]));
+      CANBus_put_frame(&tx_frame2);
 
-					Data[j] = I_byte[j]; 									//writing down for the data buffer
-					Data[j+4] = V_byte[j];
-				}
-
-				HAL_CAN_AddTxMessage(&hcan, &TxHeader, Data, &TxMailBox ); 	// load message to mailbox
-				while (HAL_CAN_IsTxMessagePending( &hcan, TxMailBox));		//waiting till message gets through
-			}
       HAL_Delay(200);
     /* USER CODE END WHILE */
 
@@ -314,6 +317,7 @@ static void MX_CAN_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN CAN_Init 2 */
+  /*
   FilterConfig.FilterIdHigh = 0x0000;
   FilterConfig.FilterIdLow = 0x0000;
   FilterConfig.FilterMaskIdHigh = 0x0000;
@@ -324,15 +328,7 @@ static void MX_CAN_Init(void)
   FilterConfig.FilterScale = CAN_FILTERSCALE_16BIT;
   FilterConfig.FilterActivation = CAN_FILTER_ENABLE;
   HAL_CAN_ConfigFilter(&hcan, &FilterConfig);
-
-//Configuring TX:
-  TxHeader.StdId = 0x00;
-  //TxHeader.ExtId = 0x01;
-  TxHeader.RTR = CAN_RTR_DATA; 	 			// want data frame
-  TxHeader.IDE = CAN_ID_STD;	 			// want standard frame
-  TxHeader.DLC = 8;			 	 			// amounts of bytes u sending
-  TxHeader.TransmitGlobalTime = DISABLE;
-  /* USER CODE END CAN_Init 2 */
+  */
 
 }
 
@@ -527,25 +523,12 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
 
 	}
 }
-/*
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-	for (uint8_t i=0; i < 2; ++i) { 										//looping through CAN messages and sending data acquired
-
-				TxHeader.StdId = IDs[i];
-				float2Bytes(VSense[i], &V_byte[0]); 						//converting the floats to packets of bytes
-				float2Bytes(ISense[i], &I_byte[0]);
-
-				for (uint8_t j=0 ; j < 4; j++) {
-
-					Data[3-j] = I_byte[j]; 									//writing down for the data buffer
-					Data[7-j] = V_byte[j];
-				}
-
-				HAL_CAN_AddTxMessage(&hcan, &TxHeader, Data, &TxMailBox ); 	// load message to mailbox
-				while (HAL_CAN_IsTxMessagePending( &hcan, TxMailBox));		//waiting till message gets through
-			}
+	WLoopCAN_timer_isr(htim);
+  
 }
-*/
+
 /* USER CODE END 4 */
 
 /**
