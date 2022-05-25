@@ -23,7 +23,6 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "string.h"
-#include "can.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -58,10 +57,7 @@ TIM_HandleTypeDef htim16;
 uint16_t ADC2ConvertedValues[64];
 float VSense[2]; 	// first one is 5V, second one is 24V
 float ISense[2]; 	// first one is 5V, second one is 24V
-uint8_t V_byte[4];
-uint8_t I_byte[4];
 float offset[4] = {0.0, 0.0, 0.0, 0.0};
-uint8_t IDs[2] = {0x30, 0x32};
 uint32_t sum = 0;
 uint16_t mean = 0;
 /* USER CODE END PV */
@@ -75,7 +71,6 @@ static void MX_CAN_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM16_Init(void);
 /* USER CODE BEGIN PFP */
-void float2Bytes(float val, uint8_t *bytes_array);
 
 /* USER CODE END PFP */
 
@@ -462,18 +457,6 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
-void float2Bytes(float val, uint8_t *bytes_array){
-  // Create union of shared memory space
-  union {
-    float float_variable;
-    uint8_t temp_array[4];
-  } u;
-  // Overite bytes of union with float variable
-  u.float_variable = val;
-  // Assign bytes to input array
-  memcpy(bytes_array, u.temp_array, 4);
-}
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
 
